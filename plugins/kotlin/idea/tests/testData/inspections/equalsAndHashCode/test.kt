@@ -47,3 +47,7 @@ object O4 : A() {
 object O5 : A() {
     override fun hashCode() = 0
 }
+
+class C5 {
+    abstract override fun equals(other: Any?) = true
+}
