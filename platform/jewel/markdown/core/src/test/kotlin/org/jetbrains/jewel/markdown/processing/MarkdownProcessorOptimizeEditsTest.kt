@@ -49,9 +49,8 @@ class MarkdownProcessorOptimizeEditsTest {
     fun `first blocks stay the same`() {
         val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
         val firstRun = processor.processWithQuickEdits(rawMarkdown)
-        val secondRun =
-            processor.processWithQuickEdits(
-                """
+        val updatedMarkdown =
+            """
                 Paragraph 0
                 continue p0
                 # Header 1
@@ -60,8 +59,8 @@ class MarkdownProcessorOptimizeEditsTest {
                 * list item 3-1
                 * list item 3-2
                 """
-                    .trimIndent()
-            )
+                .trimIndent()
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
         assertSame(firstRun[0], secondRun[0])
         assertSame(firstRun[1], secondRun[1])
         assertNotSame(firstRun[2], secondRun[2])
@@ -80,16 +79,17 @@ class MarkdownProcessorOptimizeEditsTest {
                 .trimIndent(),
             secondRun,
         )
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
     fun `first block edited`() {
         val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
         val firstRun = processor.processWithQuickEdits(rawMarkdown)
-        val secondRun =
-            processor.processWithQuickEdits(
-                """
-                Paragraph *CHANGE*
+        val updatedMarkdown =
+            """
+                Paragraph 0
+                continue p*CHANGE*
                 # Header 1
                 Paragraph 2
                 * list item 3-1
@@ -109,11 +109,12 @@ class MarkdownProcessorOptimizeEditsTest {
                 Paragraph 8
                 continue p8
                 """
-                    .trimIndent()
-            )
+                .trimIndent()
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
         assertHtmlEquals(
             """
-            <p>Paragraph <em>CHANGE</em></p>
+            <p>Paragraph 0
+            continue p<em>CHANGE</em></p>
             <h1>Header 1</h1>
             <p>Paragraph 2</p>
             <ul>
@@ -136,17 +137,16 @@ class MarkdownProcessorOptimizeEditsTest {
             secondRun,
         )
         assertNotSame(firstRun[0], secondRun[0])
-        assertNotSame(firstRun[1], secondRun[1])
-        assertSame(firstRun[2], secondRun[2])
+        assertSame(firstRun[1], secondRun[1])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
     fun `last block edited`() {
         val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
         val firstRun = processor.processWithQuickEdits(rawMarkdown)
-        val secondRun =
-            processor.processWithQuickEdits(
-                """
+        val updatedMarkdown =
+            """
                 Paragraph 0
                 continue p0
                 # Header 1
@@ -168,8 +168,8 @@ class MarkdownProcessorOptimizeEditsTest {
                 Paragraph *CHANGE*
                 continue p8
                 """
-                    .trimIndent()
-            )
+                .trimIndent()
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
         assertHtmlEquals(
             """
             <p>Paragraph 0
@@ -197,17 +197,17 @@ class MarkdownProcessorOptimizeEditsTest {
         )
         assertSame(firstRun[5], secondRun[5])
         assertSame(firstRun[6], secondRun[6])
-        assertNotSame(firstRun[7], secondRun[7])
+        assertSame(firstRun[7], secondRun[7])
         assertNotSame(firstRun[8], secondRun[8])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
     fun `middle block edited`() {
         val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
         val firstRun = processor.processWithQuickEdits(rawMarkdown)
-        val secondRun =
-            processor.processWithQuickEdits(
-                """
+        val updatedMarkdown =
+            """
                 Paragraph 0
                 continue p0
                 # Header 1
@@ -229,8 +229,8 @@ class MarkdownProcessorOptimizeEditsTest {
                 Paragraph 8
                 continue p8
                 """
-                    .trimIndent()
-            )
+                .trimIndent()
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
         assertHtmlEquals(
             """
             <p>Paragraph 0
@@ -258,19 +258,19 @@ class MarkdownProcessorOptimizeEditsTest {
         )
         assertSame(firstRun[0], secondRun[0])
         assertSame(firstRun[1], secondRun[1])
-        assertNotSame(firstRun[2], secondRun[2])
+        assertSame(firstRun[2], secondRun[2])
         assertNotSame(firstRun[3], secondRun[3])
-        assertNotSame(firstRun[4], secondRun[4])
+        assertSame(firstRun[4], secondRun[4])
         assertSame(firstRun[5], secondRun[5])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
     fun `blocks merged`() {
         val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
-        val firstRun = processor.processWithQuickEdits(rawMarkdown)
-        val secondRun =
-            processor.processWithQuickEdits(
-                """
+        val firstRun = processor.processWithQuickEdits("$rawMarkdown\n\nParagraph 9")
+        val updatedMarkdown =
+            """
                 Paragraph 0
                 continue p0
                 # Header 1
@@ -290,9 +290,11 @@ class MarkdownProcessorOptimizeEditsTest {
                 Paragraph 7
                 Paragraph 8
                 continue p8
+
+                Paragraph 9
                 """
-                    .trimIndent()
-            )
+                .trimIndent()
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
         assertHtmlEquals(
             """
             <p>Paragraph 0
@@ -313,6 +315,7 @@ class MarkdownProcessorOptimizeEditsTest {
             <p>Paragraph 7
             Paragraph 8
             continue p8</p>
+            <p>Paragraph 9</p>
 
             """
                 .trimIndent(),
@@ -321,15 +324,16 @@ class MarkdownProcessorOptimizeEditsTest {
         assertSame(firstRun[5], secondRun[5])
         assertSame(firstRun[6], secondRun[6])
         assertNotSame(firstRun[7], secondRun[7])
+        assertSame(firstRun[9], secondRun[8])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
     fun `blocks split`() {
         val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
         val firstRun = processor.processWithQuickEdits(rawMarkdown)
-        val secondRun =
-            processor.processWithQuickEdits(
-                """
+        val updatedMarkdown =
+            """
                 Paragraph 0
                 continue p0
                 # Header 1
@@ -350,8 +354,8 @@ class MarkdownProcessorOptimizeEditsTest {
                 Paragraph 8
                 continue p8
                 """
-                    .trimIndent()
-            )
+                .trimIndent()
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
         assertHtmlEquals(
             """
             <p>Paragraph 0
@@ -377,19 +381,19 @@ class MarkdownProcessorOptimizeEditsTest {
                 .trimIndent(),
             secondRun,
         )
-        assertSame(firstRun[3], secondRun[3])
-        assertNotSame(firstRun[4], secondRun[4])
+        assertSame(firstRun[4], secondRun[4])
         assertNotSame(firstRun[5], secondRun[5])
+        assertSame(firstRun[6], secondRun[7])
         assertSame(firstRun[7], secondRun[8])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
     fun `blocks deleted`() {
         val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
         val firstRun = processor.processWithQuickEdits(rawMarkdown)
-        val secondRun =
-            processor.processWithQuickEdits(
-                """
+        val updatedMarkdown =
+            """
                 Paragraph 0
                 continue p0
                 # Header 1
@@ -406,8 +410,8 @@ class MarkdownProcessorOptimizeEditsTest {
                 Paragraph 8
                 continue p8
                 """
-                    .trimIndent()
-            )
+                .trimIndent()
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
         assertHtmlEquals(
             """
             <p>Paragraph 0
@@ -435,13 +439,73 @@ class MarkdownProcessorOptimizeEditsTest {
         assertNotSame(firstRun[4], secondRun[4])
         assertNotSame(firstRun[6], secondRun[4])
         assertSame(firstRun[7], secondRun[5])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
+    }
+
+    @Test
+    fun `paragraphs merge after header block gets deleted`() {
+        val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
+        val firstRun = processor.processWithQuickEdits(rawMarkdown)
+        val updatedMarkdown =
+            """
+                Paragraph 0
+                continue p0
+                Paragraph 2
+                * list item 3-1
+                * list item 3-2
+                * list item 3-3
+                ## Header 4
+                Paragraph 5
+                continue paragraph 5
+
+
+                ```
+                line 6-1
+                line 6-2
+                ```
+                Paragraph 7
+
+                Paragraph 8
+                continue p8
+                """
+                .trimIndent()
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
+        assertHtmlEquals(
+            """
+            <p>Paragraph 0
+            continue p0
+            Paragraph 2</p>
+            <ul>
+            <li>list item 3-1</li>
+            <li>list item 3-2</li>
+            <li>list item 3-3</li>
+            </ul>
+            <h2>Header 4</h2>
+            <p>Paragraph 5
+            continue paragraph 5</p>
+            <pre><code>line 6-1
+            line 6-2
+            </code></pre>
+            <p>Paragraph 7</p>
+            <p>Paragraph 8
+            continue p8</p>
+
+            """
+                .trimIndent(),
+            secondRun,
+        )
+        assertNotSame(firstRun[0], secondRun[0])
+        assertNotSame(firstRun[2], secondRun[1])
+        assertSame(firstRun[3], secondRun[1])
+        assertSame(firstRun[4], secondRun[2])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
     fun `blocks added`() {
         val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
         val firstRun = processor.processWithQuickEdits(rawMarkdown)
-        val secondDocument =
+        val updatedMarkdown =
             """
             Paragraph 0
             continue p0
@@ -469,7 +533,7 @@ class MarkdownProcessorOptimizeEditsTest {
             continue p8
             """
                 .trimIndent()
-        val secondRun = processor.processWithQuickEdits(secondDocument)
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
         assertHtmlEquals(
             """
             <p>Paragraph 0
@@ -501,7 +565,7 @@ class MarkdownProcessorOptimizeEditsTest {
         assertNotSame(firstRun[4], secondRun[4])
         assertNotSame(firstRun[5], secondRun[6])
         assertSame(firstRun[6], secondRun[7])
-        assertIndexesEqual(secondDocument, processor.getCurrentIndexesInTest())
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
@@ -535,13 +599,15 @@ class MarkdownProcessorOptimizeEditsTest {
             secondRun,
         )
         assertSame(firstRun[0], secondRun[0])
+        assertIndexesEqual(rawMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
-    fun `empty line added`() {
+    fun `empty line added before`() {
         val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
         val firstRun = processor.processWithQuickEdits(rawMarkdown)
-        val secondRun = processor.processWithQuickEdits("\n" + rawMarkdown)
+        val updatedMarkdown = "\n" + rawMarkdown
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
         assertHtmlEquals(
             """
             <p>Paragraph 0
@@ -569,6 +635,145 @@ class MarkdownProcessorOptimizeEditsTest {
         )
         assertNotSame(firstRun[0], secondRun[0])
         assertSame(firstRun[1], secondRun[1])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
+    }
+
+    @Test
+    fun `empty line added after`() {
+        val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
+        val firstRun = processor.processWithQuickEdits(rawMarkdown)
+        val updatedMarkdown = rawMarkdown + "\n"
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
+        assertHtmlEquals(
+            """
+            <p>Paragraph 0
+            continue p0</p>
+            <h1>Header 1</h1>
+            <p>Paragraph 2</p>
+            <ul>
+            <li>list item 3-1</li>
+            <li>list item 3-2</li>
+            <li>list item 3-3</li>
+            </ul>
+            <h2>Header 4</h2>
+            <p>Paragraph 5
+            continue paragraph 5</p>
+            <pre><code>line 6-1
+            line 6-2
+            </code></pre>
+            <p>Paragraph 7</p>
+            <p>Paragraph 8
+            continue p8</p>
+
+            """
+                .trimIndent(),
+            secondRun,
+        )
+        assertSame(firstRun[7], secondRun[7])
+        assertNotSame(firstRun[8], secondRun[8])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
+    }
+
+    @Test
+    fun `one char changed`() {
+        val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
+        val firstRun = processor.processWithQuickEdits(rawMarkdown)
+        val updatedMarkdown =
+            """
+                Paragraph 0
+                continue p0
+                # Header 1
+                Paragraph!2
+                * list item 3-1
+                * list item 3-2
+                * list item 3-3
+                ## Header 4
+                Paragraph 5
+                continue paragraph 5
+
+
+                ```
+                line 6-1
+                line 6-2
+                ```
+                Paragraph 7
+
+                Paragraph 8
+                continue p8
+            """
+                .trimIndent()
+
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
+        assertHtmlEquals(
+            """
+            <p>Paragraph 0
+            continue p0</p>
+            <h1>Header 1</h1>
+            <p>Paragraph!2</p>
+            <ul>
+            <li>list item 3-1</li>
+            <li>list item 3-2</li>
+            <li>list item 3-3</li>
+            </ul>
+            <h2>Header 4</h2>
+            <p>Paragraph 5
+            continue paragraph 5</p>
+            <pre><code>line 6-1
+            line 6-2
+            </code></pre>
+            <p>Paragraph 7</p>
+            <p>Paragraph 8
+            continue p8</p>
+
+            """
+                .trimIndent(),
+            secondRun,
+        )
+        assertSame(firstRun[0], secondRun[0])
+        assertSame(firstRun[1], secondRun[1])
+        assertNotSame(firstRun[2], secondRun[2])
+        assertSame(firstRun[3], secondRun[3])
+        assertIndexesEqual(updatedMarkdown, processor.getCurrentIndexesInTest())
+    }
+
+    /** Regression for https://github.com/commonmark/commonmark-java/issues/315 */
+    @Test
+    fun `link reference spans`() {
+        val processor = MarkdownProcessor(markdownMode = MarkdownMode.EditorPreview(null))
+        val firstRun = processor.processWithQuickEdits(rawMarkdown)
+        val updatedMarkdown =
+            """
+            Paragraph 0
+            continue p0
+            # Header 1
+            Paragraph 2
+
+            [Foo*bar\]]:my_(url) 'title (with parens)'
+            Paragraph 3
+
+            [Foo*bar\]]
+            """
+                .trimIndent()
+
+        val secondRun = processor.processWithQuickEdits(updatedMarkdown)
+        assertHtmlEquals(
+            """
+            <p>Paragraph 0
+            continue p0</p>
+            <h1>Header 1</h1>
+            <p>Paragraph 2</p>
+            <p>Paragraph 3</p>
+            <p><a href="my_(url)" title="title (with parens)">Foo*bar]</a></p>
+
+            """
+                .trimIndent(),
+            secondRun,
+        )
+        assertSame(firstRun[0], secondRun[0])
+        assertSame(firstRun[1], secondRun[1])
+        assertNotSame(firstRun[2], secondRun[2])
+        // it shouldn't have empty indexes even for link references
+        assertEquals(listOf(0, 24, 35, 48, 91, 104), processor.getCurrentIndexesInTest())
     }
 
     /** Regression https://github.com/JetBrains/jewel/issues/344 */
@@ -583,7 +788,9 @@ class MarkdownProcessorOptimizeEditsTest {
                 .trimIndent(),
             secondRun,
         )
+        assertIndexesEqual("", processor.getCurrentIndexesInTest())
         processor.processWithQuickEdits(rawMarkdown)
+        assertIndexesEqual(rawMarkdown, processor.getCurrentIndexesInTest())
     }
 
     @Test
@@ -609,11 +816,30 @@ class MarkdownProcessorOptimizeEditsTest {
             """
                 .trimIndent()
         )
-        processor.processWithQuickEdits(
+        val second =
             """
             # Header 0
             # Header 1
-            some paragraph
+
+
+            paragraph
+
+            # Header 2
+            # Header 3
+            # Header 7
+            # Header 8
+            # Header 9
+
+            """
+                .trimIndent()
+        processor.processWithQuickEdits(second)
+        assertIndexesEqual(second, processor.getCurrentIndexesInTest())
+
+        val third =
+            """
+            # Header 0
+            # Header 1
+            Some paragraph
 
 
 
@@ -626,10 +852,11 @@ class MarkdownProcessorOptimizeEditsTest {
 
             """
                 .trimIndent()
-        )
-        val forthRun =
-            processor.processWithQuickEdits(
-                """
+        processor.processWithQuickEdits(third)
+        assertIndexesEqual(third, processor.getCurrentIndexesInTest())
+
+        val forth =
+            """
                 # Header 0
                 # Header 1
 
@@ -641,8 +868,10 @@ class MarkdownProcessorOptimizeEditsTest {
                 # Header 9
 
                 """
-                    .trimIndent()
-            )
+                .trimIndent()
+
+        val forthRun = processor.processWithQuickEdits(forth)
+        assertIndexesEqual(forth, processor.getCurrentIndexesInTest())
         val fifthDocument =
             """
             # Header 0
@@ -662,7 +891,6 @@ class MarkdownProcessorOptimizeEditsTest {
             """
                 .trimIndent()
         val fifthRun = processor.processWithQuickEdits(fifthDocument)
-
         assertIndexesEqual(fifthDocument, processor.getCurrentIndexesInTest())
 
         assertSame(forthRun[0], fifthRun[0])
@@ -706,13 +934,9 @@ private fun Node.children(): List<Node> {
     }
 }
 
-private fun assertIndexesEqual(lastProcessedDocument: String, currentIndexes: List<Pair<Int, Int>>) {
+private fun assertIndexesEqual(lastProcessedDocument: String, currentIndexes: List<Int>) {
     val commonmarkDocument =
         Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build().parse(lastProcessedDocument) as Document
-    val expected =
-        (commonmarkDocument)
-            .children()
-            .map { it.sourceSpans.first().lineIndex to it.sourceSpans.last().lineIndex }
-            .toTypedArray()
-    assertArrayEquals(expected, currentIndexes.toTypedArray())
+    val expected = commonmarkDocument.children().map { it.sourceSpans.first().inputIndex }
+    assertEquals(expected, currentIndexes)
 }
